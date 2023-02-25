@@ -61,13 +61,13 @@ def pyspark_distributor(processes_count, downloader, reader, subjob_size, max_sh
                         failed_shards_x.append(row)
             except Exception as exc:
                 print(exc)
-                failed_shards_x += run_batch(batch)
+                run_batch(batch)
             return failed_shards_x
 
         def run(gen):
             failed_shards = []
             for batch in batcher(gen, subjob_size):
-                failed_shards += run_batch(batch)
+                run_batch(batch)
             return failed_shards
 
         failed_shards = run(reader)
