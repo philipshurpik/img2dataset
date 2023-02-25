@@ -52,22 +52,17 @@ def pyspark_distributor(processes_count, downloader, reader, subjob_size, max_sh
             for first in iterator:
                 yield list(chain([first], islice(iterator, batch_size - 1)))
 
-        def run_batch(batch):
-            failed_shards_x = []
-            try:
-                rdd = spark.sparkContext.parallelize(batch, len(batch))
-                for (status, row) in rdd.map(downloader).collect():
-                    if status is False:
-                        failed_shards_x.append(row)
-            except Exception as exc:
-                print(exc)
-                run_batch(batch)
-            return failed_shards_x
-
         def run(gen):
             failed_shards = []
             for batch in batcher(gen, subjob_size):
-                run_batch(batch)
+                rdd = spark.sparkContext.parallelize(batch, len(batch))
+                try:
+                    for (status, row) in rdd.map(downloader).collect():
+                        if status is False:
+                            failed_shards.append(row)
+                except Exception as exc:
+                    # just skip if exception and continue to next batch
+                    print(exc)
             return failed_shards
 
         failed_shards = run(reader)
